@@ -26,17 +26,21 @@ class LaunchRequestHandler(AbstractRequestHandler):
     """Handler for Skill Launch."""
     def can_handle(self, handler_input):
         # type: (HandlerInput) -> bool
+        #These variablles must be declared below, otherwise calling them will cause an exception error. calling non-existent slot values incontrast prvoides a NULL value
+        handler_input.attributes_manager.session_attributes["input"] = None # initialise -reminder- value in session as None upon launch
+        handler_input.attributes_manager.session_attributes["time"] = None # similarly, set the time attribute in session as None for now
+        handler_input.attributes_manager.session_attributes["date"] = None # similarly, set the Data attribute in session as None for now
+        handler_input.attributes_manager.session_attributes["weekdays"] = None # similarly, set the Data attribute in session as None for now
+        handler_input.attributes_manager.session_attributes["First_time"] = False # declare session variable to let intents know whether to guide user or not for future speeches
+        handler_input.attributes_manager.session_attributes["user_confirmed_input"] = False
+        handler_input.attributes_manager.session_attributes["user_confirmed_date_time"] = False
+        handler_input.attributes_manager.session_attributes["user_confirmed_weekday_time"] = False
 
         return ask_utils.is_request_type("LaunchRequest")(handler_input)
 
     def handle(self, handler_input):
         # type: (HandlerInput) -> Response
-        handler_input.attributes_manager.session_attributes["input"] = None # initialise -reminder- value in session as None upon launch
-        handler_input.attributes_manager.session_attributes["time"] = None # similarly, set the time attribute in session as None for now
-        handler_input.attributes_manager.session_attributes["date"] = None # similarly, set the Data attribute in session as None for now
-        handler_input.attributes_manager.session_attributes["weekdays"] = None # similarly, set the Data attribute in session as None for now
-        handler_input.attributes_manager.session_attributes["First_time"] = True # declare session variable to let intents know whether to guide user or not for future speeches 
-        speak_output = "Hello! My name is Alfred, and I'm here to help you remember things better. As an example, you can say: remind me to: go for a walk. Why don't you set your own prompt now?"# You can also start with a date and time. As an example, you can say: set a reminder for 8 p.m, next thursday. Why don't you try it now?"
+        speak_output = "Hello! My name is Alfred, and I'm here to help you remember things. I can set, but also give you reminders. to set a reminder, you can say for example: remind me to: walk the dog."# You can also start with a date and time. As an example, you can say: set a reminder for 8 p.m, next thursday. Why don't you try it now?"
         reprompt = "If you need further guidance. you can simply say: help. Or: I need assistance"
         return (handler_input.response_builder.speak(speak_output).ask(reprompt).response)
 
@@ -63,34 +67,47 @@ class HelpIntentHandler(AbstractRequestHandler):
         return (handler_input.response_builder.speak(speak_output).ask(reprompt).response)
 
 #note calling a session attribute that wasnt initially declared, classifies the value as NULL or None --> very useful. 
-class testIntentHandler(AbstractRequestHandler):
+class setreminderdescriptionIntentHandler(AbstractRequestHandler):
+    """Handler for Help Intent."""
+    def can_handle(self, handler_input):
+        return ask_utils.is_intent_name("setremindertype")(handler_input)
+
+    def handle(self, handler_input):
+        #note calling a sllot value using ask_utils.request_util.get_slot(handler_input,~~) that wasnt initially declared classifies the value as NULL or None --> Potentially very useful for variable checks.
+        handler_input.attributes_manager.session_attributes["user_confirmed_input"] = True
+        input_ = ask_utils.request_util.get_slot(handler_input, "input")
+        handler_input.attributes_manager.session_attributes["input"] =input_.value
+        speak_output = "Thanks. What date and time would you like for your reminder?".format(input_.value)
+        return (handler_input.response_builder.speak(speak_output).ask(speak_output).response)
+
+
+
+class datetimeIntentHandler(AbstractRequestHandler):
     """Handler for Help Intent."""
     def can_handle(self, handler_input):
         # type: (HandlerInput) -> bool
-        return ask_utils.is_intent_name("reminderIntent")(handler_input)
 
+        return ask_utils.is_intent_name("setdatetimeintent")(handler_input)
+        
     def handle(self, handler_input):
         # type: (HandlerInput) -> Response
-        input_ = ask_utils.request_util.get_slot(handler_input, "input")
+        #note calling the things below that wasnt initially declared, classifies the value as NULL or None --> very useful.
         date_ =ask_utils.request_util.get_slot(handler_input, "date")
         time_ =ask_utils.request_util.get_slot(handler_input, "time")
         weekdays_ = ask_utils.request_util.get_slot(handler_input, "weekdays")
-        speak_output = ""
-
-        if time_.value != None and date_.value != None:
-            speak_output = "You have set a reminder for: {}, at {}. Is that correct?".format(date_.value,time_.value)#,date_.value,time_.value)
-            handler_input.attributes_manager.session_attributes["date"] = date_.value # save for other intents later
-            handler_input.attributes_manager.session_attributes["time"] = time_.value # save for other intents later
-        elif weekdays_.value != None and time_.value != None:
-            speak_output = "You would like a reminder for next {}, at {}. Is that correct?".format(weekdays_.value,time_.value)
-            handler_input.attributes_manager.session_attributes["weekdays"] = weekdays_.value # save for other intents later
-            handler_input.attributes_manager.session_attributes["time"] = time_.value # save for other intents later
-        elif time_.value == None and date_.value == None and input_.value != None:
-            speak_output = "You would like a reminder to: {}. Is that correct?".format(input_.value)
-        handler_input.attributes_manager.session_attributes["input"] = input_.value # save for other intents
-
+        speak_output="test 1 2 3"
         
+        if date_.value != None and time_.value != None:
+            speak_output = "Thank you, now. what would you like me to remind you about?"
+        if date_.value != None and time_.value != None and  handler_input.attributes_manager.session_attributes["input"] != None:
+            handler_input.attributes_manager.session_attributes["user_confirmed_date_time"] = True
+            speak_output ="You have set a reminder to: {}. at {},{}. Is that correct?".format(handler_input.attributes_manager.session_attributes["input"],time_.value,date_.value)
+        if weekdays_.value != None and time_.value != None and handler_input.attributes_manager.session_attributes["input"] != None:
+            handler_input.attributes_manager.session_attributes["user_confirmed_date_time"] = True
+            speak_output ="You have set a reminder to: {}, for next {}, at {}. Is that correct?".format(handler_input.attributes_manager.session_attributes["input"],weekdays_.value,time_.value)
         return (handler_input.response_builder.speak(speak_output).ask(speak_output).response)
+
+
 
 class yesIntentHandler(AbstractRequestHandler):
     """Handler for Help Intent."""
@@ -108,13 +125,10 @@ class yesIntentHandler(AbstractRequestHandler):
         
         speech_output = "I'm sorry. I didn't catch that. As an example, you can say: remind me to prepare tomorrow's meal. You can also say: set me a reminder for: next wednesday at 11 a.m"
         
-        
-        if input_ != None and date_ == None and time_ == None:
-            print("hi")
-            if first_time_ == True:
-                speak_output = "That's great. what date and time would you like?"
-                reprompt = "Now that you've confirmed your prompt. Why don't you suggest a date and time?" 
-        return (handler_input.response_builder.speak(speak_output).ask(reprompt).response)
+        if handler_input.attributes_manager.session_attributes["user_confirmed_input"] == True:
+            speak_output = "What date and time would you like for your reminder?"
+            reprompt = "I'm sorry, I didn't catch that. what date and time would you like for your reminder?"
+
 
 
 
@@ -213,23 +227,19 @@ class CatchAllExceptionHandler(AbstractExceptionHandler):
                 .response
         )
 
+
 # The SkillBuilder object acts as the entry point for your skill, routing all request and response
 # payloads to the handlers above. Make sure any new handlers or interceptors you've
 # defined are included below. The order matters - they're processed top to bottom.
-
-
 sb = SkillBuilder()
-
 sb.add_request_handler(LaunchRequestHandler())
-sb.add_request_handler(testIntentHandler())
+sb.add_request_handler(setreminderdescriptionIntentHandler())
 sb.add_request_handler(yesIntentHandler())
+sb.add_request_handler(datetimeIntentHandler())
 sb.add_request_handler(HelpIntentHandler())
 sb.add_request_handler(CancelOrStopIntentHandler())
 sb.add_request_handler(FallbackIntentHandler())
 sb.add_request_handler(SessionEndedRequestHandler())
-
-sb.add_request_handler(IntentReflectorHandler()) # make sure IntentReflectorHandler is last so it doesn't override your custom intent handlers
-
 sb.add_exception_handler(CatchAllExceptionHandler())
-
+sb.add_request_handler(IntentReflectorHandler()) # make sure IntentReflectorHandler is last so it doesn't override your custom intent handlers
 lambda_handler = sb.lambda_handler()
