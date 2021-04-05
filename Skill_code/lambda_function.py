@@ -27,10 +27,6 @@ class LaunchRequestHandler(AbstractRequestHandler):
     def can_handle(self, handler_input):
         # type: (HandlerInput) -> bool
         #These variablles must be declared below, otherwise calling them will cause an exception error. calling non-existent slot values incontrast prvoides a NULL value
-        handler_input.attributes_manager.session_attributes["input"] = None # initialise -reminder- value in session as None upon launch
-        handler_input.attributes_manager.session_attributes["time"] = None # similarly, set the time attribute in session as None for now
-        handler_input.attributes_manager.session_attributes["date"] = None # similarly, set the Data attribute in session as None for now
-        handler_input.attributes_manager.session_attributes["weekdays"] = None # similarly, set the Data attribute in session as None for now
         handler_input.attributes_manager.session_attributes["First_time"] = False # declare session variable to let intents know whether to guide user or not for future speeches
         handler_input.attributes_manager.session_attributes["user_confirmed_input"] = False
         handler_input.attributes_manager.session_attributes["user_confirmed_date_time"] = False
@@ -52,6 +48,7 @@ class HelpIntentHandler(AbstractRequestHandler):
     """Handler for Help Intent."""
     def can_handle(self, handler_input):
         
+        
         # type: (HandlerInput) -> bool
         return ask_utils.is_intent_name("AMAZON.HelpIntent")(handler_input)
 
@@ -70,11 +67,11 @@ class HelpIntentHandler(AbstractRequestHandler):
 class setreminderdescriptionIntentHandler(AbstractRequestHandler):
     """Handler for Help Intent."""
     def can_handle(self, handler_input):
+        handler_input.attributes_manager.session_attributes["user_confirmed_input"] = True
         return ask_utils.is_intent_name("setremindertype")(handler_input)
 
     def handle(self, handler_input):
         #note calling a sllot value using ask_utils.request_util.get_slot(handler_input,~~) that wasnt initially declared classifies the value as NULL or None --> Potentially very useful for variable checks.
-        handler_input.attributes_manager.session_attributes["user_confirmed_input"] = True
         input_ = ask_utils.request_util.get_slot(handler_input, "input")
         handler_input.attributes_manager.session_attributes["input"] =input_.value
         speak_output = "Thanks. What date and time would you like for your reminder?".format(input_.value)
@@ -86,7 +83,7 @@ class datetimeIntentHandler(AbstractRequestHandler):
     """Handler for Help Intent."""
     def can_handle(self, handler_input):
         # type: (HandlerInput) -> bool
-
+        handler_input.attributes_manager.session_attributes["user_confirmed_date_time"] = True
         return ask_utils.is_intent_name("setdatetimeintent")(handler_input)
         
     def handle(self, handler_input):
@@ -95,16 +92,21 @@ class datetimeIntentHandler(AbstractRequestHandler):
         date_ =ask_utils.request_util.get_slot(handler_input, "date")
         time_ =ask_utils.request_util.get_slot(handler_input, "time")
         weekdays_ = ask_utils.request_util.get_slot(handler_input, "weekdays")
+        input_ = ask_utils.request_util.get_slot(handler_input, "input")
         speak_output="test 1 2 3"
         
-        if date_.value != None and time_.value != None:
-            speak_output = "Thank you, now. what would you like me to remind you about?"
-        if date_.value != None and time_.value != None and  handler_input.attributes_manager.session_attributes["input"] != None:
-            handler_input.attributes_manager.session_attributes["user_confirmed_date_time"] = True
-            speak_output ="You have set a reminder to: {}. at {},{}. Is that correct?".format(handler_input.attributes_manager.session_attributes["input"],time_.value,date_.value)
-        if weekdays_.value != None and time_.value != None and handler_input.attributes_manager.session_attributes["input"] != None:
-            handler_input.attributes_manager.session_attributes["user_confirmed_date_time"] = True
-            speak_output ="You have set a reminder to: {}, for next {}, at {}. Is that correct?".format(handler_input.attributes_manager.session_attributes["input"],weekdays_.value,time_.value)
+        try:
+            if date_.value != None and time_.value != None and handler_input.attributes_manager.session_attributes["user_confirmed_input"] == True:
+                speak_output ="You have set a reminder to: {}. at {},{}. Is that correct?".format(handler_input.attributes_manager.session_attributes["input"],time_.value,date_.value)
+            elif weekdays_.value != None and time_.value != None and  handler_input.attributes_manager.session_attributes["user_confirmed_input"] == True:
+                speak_output ="You have set a reminder to: {}, for next {}, at {}. Is that correct?".format(handler_input.attributes_manager.session_attributes["input"],weekdays_.value,time_)
+            elif date_.value != None and time_.value != None:# and handler_input.attributes_manager.session_attributes["user_confirmed_input"] == False:#########
+                speak_output = "Thank you, now. what would you like me to remind you about?"
+        except:
+            print("hi")
+            speak_output ="testing if it works"
+            #if date_.value != None and time_.value != None:# and handler_input.attributes_manager.session_attributes["user_confirmed_input"] == False:#########
+            #    speak_output = "Thank you, now. what would you like me to remind you about?"
         return (handler_input.response_builder.speak(speak_output).ask(speak_output).response)
 
 
