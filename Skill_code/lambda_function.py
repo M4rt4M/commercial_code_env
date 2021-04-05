@@ -123,8 +123,8 @@ class datetimeIntentHandler(AbstractRequestHandler):
                 handler_input.attributes_manager.session_attributes["date"] = date_.value#
                 handler_input.attributes_manager.session_attributes["time"] = time_.value#
             elif weekdays_.value != None and time_.value != None and  handler_input.attributes_manager.session_attributes["user_confirmed_input"] == True:
-                speak_output ="You have set a reminder to: {}, for next {}, at {}. Is that correct?".format(handler_input.attributes_manager.session_attributes["input"],weekdays_.value,time_)
-                handler_input.attributes_manager.session_attributes["date"] = weekdays_.value#
+                speak_output ="You have set a reminder to: {}, for next {}, at {}. Is that correct?".format(handler_input.attributes_manager.session_attributes["input"],weekdays_.value,time_.value)
+                handler_input.attributes_manager.session_attributes["weekdays"] = weekdays_.value#
                 handler_input.attributes_manager.session_attributes["time"] = time_.value#
             elif date_.value != None and time_.value != None:# and handler_input.attributes_manager.session_attributes["user_confirmed_input"] == False:#########
                 handler_input.attributes_manager.session_attributes["date"] = date_.value#
@@ -159,12 +159,23 @@ class yesIntentHandler(AbstractRequestHandler):
                 speak_output = "That's great. Your prompt now has been set."
                 try:
                     if handler_input.attributes_manager.session_attributes["First_time"] == True:
-                        speak_output ="That's great. Your prompt has been set. Next time, you can set a prompt by saying: Alexa, tell Alfred, remind me to {}. For further assistance, you can simply say: help.".format(handler_input.attributes_manager.session_attributes["input"])
+                        speak_output ="That's great. Your prompt has been set. Next time, you can start setting a prompt by saying: Alexa, tell Alfred, remind me to {}. For further assistance, you can simply say: help.".format(handler_input.attributes_manager.session_attributes["input"])
                 except:
                     pass
         except:
             pass
-            
+        
+        try:
+            speak_output = "test 3 2 1"
+            if handler_input.attributes_manager.session_attributes["input"] != None and handler_input.attributes_manager.session_attributes["weekdays"] != None and handler_input.attributes_manager.session_attributes["time"] != None:
+                speak_output = "That's great. Your prompt now has been set."
+                try:
+                    if handler_input.attributes_manager.session_attributes["First_time"] == True:
+                        speak_output ="That's great. Your prompt has been set. Next time, you can start setting a prompt by saying: Alexa, tell Alfred, remind me to {}. For further assistance, you can simply say: help.".format(handler_input.attributes_manager.session_attributes["input"])
+                except:
+                    pass
+        except:
+            pass
         return (handler_input.response_builder.speak(speak_output).ask(speak_output).response)
 
 
