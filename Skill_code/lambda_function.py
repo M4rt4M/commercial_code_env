@@ -32,14 +32,18 @@ class LaunchRequestHandler(AbstractRequestHandler):
         #handler_input.attributes_manager.session_attributes["First_time"] = False # declare session variable to let intents know whether to guide user or not for future speeches
         handler_input.attributes_manager.session_attributes["user_confirmed_input"] = False
         handler_input.attributes_manager.session_attributes["user_confirmed_weekday_time"] = False
-
+        handler_input.attributes_manager.session_attributes["user_confirmed_date_time"] = False
         return ask_utils.is_request_type("LaunchRequest")(handler_input)
 
     def handle(self, handler_input):
         # type: (HandlerInput) -> Response
-        speak_output = "Hello! My name is Alfred, and I'm here to help you remember things. I can set, but also give you reminders." #to set a reminder, you can say for example: remind me to: walk the dog."# You can also start with a date and time. As an example, you can say: set a reminder for 8 p.m, next thursday. Why don't you try it now?"
+        speak_output = '<speak> \
+                        <voice name="Matthew"> \
+                        Hello! My name is Alfred, and I am here to help you remember things. I can set, and give you reminders. Would you like to set one now? \
+                        </voice> \
+                        </speak>' #to set a reminder, you can say for example: remind me to: walk the dog."# You can also start with a date and time. As an example, you can say: set a reminder for 8 p.m, next thursday. Why don't you try it now?"
         handler_input.attributes_manager.session_attributes["save_phrase_for_repeat"] = speak_output ##
-        reprompt = "If you need further guidance. you can simply say: help. Or: I need assistance"
+        reprompt = "If you need further guidance, you can say: help. Or: I need assistance"
         return (handler_input.response_builder.speak(speak_output).ask(reprompt).response)
 
 #note calling a session attribute that wasnt initially declared, classifies the value as NULL or None --> very useful. 
@@ -48,12 +52,13 @@ class setreminderdescriptionIntentHandler(AbstractRequestHandler):
     def can_handle(self, handler_input):
         handler_input.attributes_manager.session_attributes["user_confirmed_input"] = True
         return ask_utils.is_intent_name("setremindertype")(handler_input)
-
     def handle(self, handler_input):
         #note calling a sllot value using ask_utils.request_util.get_slot(handler_input,~~) that wasnt initially declared classifies the value as NULL or None --> Potentially very useful for variable checks.
         
         input_ = ask_utils.request_util.get_slot(handler_input, "input")
         handler_input.attributes_manager.session_attributes["input"] =input_.value
+        novalues_ = ask_utils.request_util.get_slot(handler_input, "novalues")
+        
         
         try:
             if handler_input.attributes_manager.session_attributes["First_time"] == True and input_.value != None:
@@ -71,6 +76,7 @@ class setreminderdescriptionIntentHandler(AbstractRequestHandler):
                     if handler_input.attributes_manager.session_attributes["time"] != None and handler_input.attributes_manager.session_attributes["date"] != None:
                         speak_output = "You have set a reminder to {}. for {}, at {}. Is that correct?".format(input_.value,handler_input.attributes_manager.session_attributes["date"],handler_input.attributes_manager.session_attributes["time"])
                         handler_input.attributes_manager.session_attributes["save_phrase_for_repeat"] = speak_output
+                        handler_input.attributes_manager.session_attributes["date_time_input_ready"] = True
                 except:
                     pass
                 
@@ -78,6 +84,7 @@ class setreminderdescriptionIntentHandler(AbstractRequestHandler):
                     if handler_input.attributes_manager.session_attributes["time"] != None and handler_input.attributes_manager.session_attributes["weekdays"] != None:
                         speak_output = "you have set a reminder to {}. for next {}, at {}. Is that correct?".format(input_.value,handler_input.attributes_manager.session_attributes["weekdays"],handler_input.attributes_manager.session_attributes["time"])
                         handler_input.attributes_manager.session_attributes["save_phrase_for_repeat"] = speak_output
+                        handler_input.attributes_manager.session_attributes["date_time_input_ready"] = True
                 except:
                     pass
         except:
@@ -87,14 +94,30 @@ class setreminderdescriptionIntentHandler(AbstractRequestHandler):
         try:
             if handler_input.attributes_manager.session_attributes["time_only_provided"] != None and handler_input.attributes_manager.session_attributes["date_only_provided"] != None:
                 speak_output = "you have set a reminder to {}. for {}, at {}. Is that correct?".format(input_.value,handler_input.attributes_manager.session_attributes["date_only_provided"],handler_input.attributes_manager.session_attributes["time_only_provided"])
+                handler_input.attributes_manager.session_attributes["date_time_input_ready"] = True
+                handler_input.attributes_manager.session_attributes["save_phrase_for_repeat"] = speak_output
+                input_.value,handler_input.attributes_manager.session_attributes["date"] = input_.value,handler_input.attributes_manager.session_attributes["date_only_provided"]
+                input_.value,handler_input.attributes_manager.session_attributes["time"] = input_.value,handler_input.attributes_manager.session_attributes["time_only_provided"]
         except:
             pass
         
         try:
             if handler_input.attributes_manager.session_attributes["time_only_provided"] != None and handler_input.attributes_manager.session_attributes["weekday_only_provided"] != None:
                 speak_output = "you have set a reminder to {}. for next {}, at {}. Is that correct?".format(input_.value,handler_input.attributes_manager.session_attributes["weekday_only_provided"],handler_input.attributes_manager.session_attributes["time_only_provided"])
+                handler_input.attributes_manager.session_attributes["date_time_input_ready"] = True
+                handler_input.attributes_manager.session_attributes["save_phrase_for_repeat"] = speak_output
+                input_.value,handler_input.attributes_manager.session_attributes["weekdays"] = input_.value,handler_input.attributes_manager.session_attributes["weekday_only_provided"]
+                input_.value,handler_input.attributes_manager.session_attributes["time"] = input_.value,handler_input.attributes_manager.session_attributes["time_only_provided"]
         except:
             pass
+        
+        if novalues_.value != None:
+            speak_output = "What would you like me to remind you about?"
+            try:
+                if handler_input.attributes_manager.session_attributes["First_time"] == True:
+                    speak_output = "What would you like me to remind you about? As an example you can say: remind me to walk the dog"
+            except:
+                pass
         
         return (handler_input.response_builder.speak(speak_output).ask(speak_output).response)
 
@@ -103,7 +126,6 @@ class datetimeIntentHandler(AbstractRequestHandler):
     """Handler for Help Intent."""
     def can_handle(self, handler_input):
         # type: (HandlerInput) -> bool
-        handler_input.attributes_manager.session_attributes["user_confirmed_date_time"] = True
         return ask_utils.is_intent_name("setdatetimeintent")(handler_input)
         
     def handle(self, handler_input):
@@ -115,23 +137,44 @@ class datetimeIntentHandler(AbstractRequestHandler):
         input_ = ask_utils.request_util.get_slot(handler_input, "input")
         speak_output="test 1 2 3 4"
         
+        
+        try:
+            if weekdays_.value != None and time_.value != None:
+                speak_output = "Thank you, now. what would you like me to remind you about?"
+                handler_input.attributes_manager.session_attributes["save_phrase_for_repeat"] = speak_output
+                handler_input.attributes_manager.session_attributes["time"] = time_.value
+                handler_input.attributes_manager.session_attributes["user_confirmed_date_time"] = True
+                try:
+                    if handler_input.attributes_manager.session_attributes["First_time"] == True:
+                        speak_output = "Thank you, now that you've set the date and time. You can now tell me what to remind you about. As an example you can say: remind me to take my medicine"
+                        handler_input.attributes_manager.session_attributes["save_phrase_for_repeat"] = speak_output
+                        handler_input.attributes_manager.session_attributes["time"] = time_.value
+                        handler_input.attributes_manager.session_attributes["user_confirmed_date_time"] = True
+                except:
+                    pass
+        except:
+            pass
+        
         try:
             if date_.value != None and time_.value != None and handler_input.attributes_manager.session_attributes["user_confirmed_input"] == True:
                 speak_output ="You have set a reminder to: {}. at {},{}. Is that correct?".format(handler_input.attributes_manager.session_attributes["input"],time_.value,date_.value)
                 handler_input.attributes_manager.session_attributes["save_phrase_for_repeat"] = speak_output
-                handler_input.attributes_manager.session_attributes["date"] = date_.value#
-                handler_input.attributes_manager.session_attributes["time"] = time_.value#
+                handler_input.attributes_manager.session_attributes["date"] = date_.value
+                handler_input.attributes_manager.session_attributes["time"] = time_.value
+                handler_input.attributes_manager.session_attributes["date_time_input_ready"] = True
             elif weekdays_.value != None and time_.value != None and  handler_input.attributes_manager.session_attributes["user_confirmed_input"] == True:
                 speak_output ="You have set a reminder to: {}, for next {}, at {}. Is that correct?".format(handler_input.attributes_manager.session_attributes["input"],weekdays_.value,time_.value)
                 handler_input.attributes_manager.session_attributes["save_phrase_for_repeat"] = speak_output
-                handler_input.attributes_manager.session_attributes["weekdays"] = weekdays_.value#
+                handler_input.attributes_manager.session_attributes["weekdays"] = weekdays_.value
                 handler_input.attributes_manager.session_attributes["time"] = time_.value#
-            elif date_.value != None and time_.value != None:# and handler_input.attributes_manager.session_attributes["user_confirmed_input"] == False:#########
+                handler_input.attributes_manager.session_attributes["date_time_input_ready"] = True
+            elif date_.value != None and time_.value != None:
                 speak_output = "Thank you, now. what would you like me to remind you about?"
                 handler_input.attributes_manager.session_attributes["save_phrase_for_repeat"] = speak_output
+                handler_input.attributes_manager.session_attributes["user_confirmed_date_time"] = True
                 try:
                     if handler_input.attributes_manager.session_attributes["First_time"] == True:
-                        speak_output = "Thank you, now that you've set the date and time. You can now tell me what to remind you with. As an example you can say: remind me to prepare lunch"
+                        speak_output = "Thank you, now that you've set the date and time. You can now tell me what to remind you about. As an example you can say: remind me to prepare lunch"
                         handler_input.attributes_manager.session_attributes["save_phrase_for_repeat"] = speak_output
                 except:
                     pass
@@ -143,9 +186,10 @@ class datetimeIntentHandler(AbstractRequestHandler):
             handler_input.attributes_manager.session_attributes["weekdays"] = weekdays_.value
             speak_output = "Thank you, now. what would you like me to remind you about?"
             handler_input.attributes_manager.session_attributes["save_phrase_for_repeat"] = speak_output
+            handler_input.attributes_manager.session_attributes["user_confirmed_weekday_time"] = True
             try:
                 if handler_input.attributes_manager.session_attributes["First_time"] == True:
-                    speak_output = "Thank you, now that you've set the date and time. You can now tell me what to remind you with. As an example you can say: remind me to take my medicine"
+                    speak_output = "Thank you, now that you've set the date and time. You can now tell me what to remind you about. As an example you can say: remind me to take my medicine"
                     handler_input.attributes_manager.session_attributes["save_phrase_for_repeat"] = speak_output
             except:
                 pass
@@ -157,9 +201,10 @@ class datetimeIntentHandler(AbstractRequestHandler):
                 speak_output = "Thank you, now. what would you like me to remind you about?"
                 handler_input.attributes_manager.session_attributes["save_phrase_for_repeat"] = speak_output
                 handler_input.attributes_manager.session_attributes["time"] = time_.value
+                handler_input.attributes_manager.session_attributes["user_confirmed_date_time"] = True
                 try:
                     if handler_input.attributes_manager.session_attributes["First_time"] == True:
-                        speak_output = "Thank you, now that you've set the date and time. You can now tell me what to remind you with. As an example you can say: remind me to take my medicine"
+                        speak_output = "Thank you, now that you've set the date and time. You can now tell me what to remind you about. As an example you can say: remind me to take my medicine"
                         handler_input.attributes_manager.session_attributes["save_phrase_for_repeat"] = speak_output
                         handler_input.attributes_manager.session_attributes["time"] = time_.value
                 except:
@@ -169,32 +214,15 @@ class datetimeIntentHandler(AbstractRequestHandler):
             pass
         
         try:
-            if weekdays_.value != None and time_.value != None:
-                speak_output = "Thank you, now. what would you like me to remind you about?"
-                handler_input.attributes_manager.session_attributes["save_phrase_for_repeat"] = speak_output
-                handler_input.attributes_manager.session_attributes["time"] = time_.value
-                
-                try:
-                    if handler_input.attributes_manager.session_attributes["First_time"] == True:
-                        speak_output = "Thank you, now that you've set the date and time. You can now tell me what to remind you with. As an example you can say: remind me to take my medicine"
-                        handler_input.attributes_manager.session_attributes["save_phrase_for_repeat"] = speak_output
-                        handler_input.attributes_manager.session_attributes["time"] = time_.value
-                except:
-                    pass
-        except:
-            pass
-###########
-
-        try:
             if date_.value != None and time_.value == None:
                 speak_output = "Thanks, now. what time would you like?"
                 handler_input.attributes_manager.session_attributes["save_phrase_for_repeat"] = speak_output
                 handler_input.attributes_manager.session_attributes["date_only_provided"] = date_.value
+                handler_input.attributes_manager.session_attributes["user_confirmed_date_time"] = True
                 try:
                     if handler_input.attributes_manager.session_attributes["First_time"] == True:
                         speak_output ="That's great. Now that you've set the date, why don't you suggest a time? For example, you can say: seven a.m"
                         handler_input.attributes_manager.session_attributes["save_phrase_for_repeat"] = speak_output
-                        handler_input.attributes_manager.session_attributes["date_only_provided"] = date_.value
                 except:
                     pass
         except:
@@ -205,6 +233,7 @@ class datetimeIntentHandler(AbstractRequestHandler):
                 speak_output = "Thanks, now. what time would you like?"
                 handler_input.attributes_manager.session_attributes["save_phrase_for_repeat"] = speak_output
                 handler_input.attributes_manager.session_attributes["weekday_only_provided"] = weekdays_.value
+                handler_input.attributes_manager.session_attributes["user_confirmed_weekday_time"] = True
                 try:
                     if handler_input.attributes_manager.session_attributes["First_time"] == True:
                         speak_output ="That's great. Now that you've set the date, why don't you suggest a time? For example, you can say: seven a.m"
@@ -224,7 +253,6 @@ class datetimeIntentHandler(AbstractRequestHandler):
                     if handler_input.attributes_manager.session_attributes["First_time"] == True:
                         speak_output ="That's great. Now that you've set the time, why don't you suggest a date? For example, you can say: next week."
                         handler_input.attributes_manager.session_attributes["save_phrase_for_repeat"] = speak_output
-                        handler_input.attributes_manager.session_attributes["time_only_provided"] = time_.value
                 except:
                     pass
         except:
@@ -251,12 +279,12 @@ class datetimeIntentHandler(AbstractRequestHandler):
         except:
             pass
         
- ##########       
         try:
             if handler_input.attributes_manager.session_attributes["time_only_provided"] != None and handler_input.attributes_manager.session_attributes["date_only_provided"] != None and handler_input.attributes_manager.session_attributes["input"] != None:
                 
                 speak_output = "You have set a reminder to {}. for {}, at {}. Is that correct? ".format(handler_input.attributes_manager.session_attributes["input"],handler_input.attributes_manager.session_attributes["date_only_provided"],handler_input.attributes_manager.session_attributes["time_only_provided"])
                 handler_input.attributes_manager.session_attributes["save_phrase_for_repeat"] = speak_output
+                handler_input.attributes_manager.session_attributes["date_time_input_ready"] = True
         except:
             pass
         
@@ -265,6 +293,7 @@ class datetimeIntentHandler(AbstractRequestHandler):
                 
                 speak_output = "You have set a reminder to {}. for next {}, at {}. Is that correct? ".format(handler_input.attributes_manager.session_attributes["input"],handler_input.attributes_manager.session_attributes["weekday_only_provided"],handler_input.attributes_manager.session_attributes["time_only_provided"])
                 handler_input.attributes_manager.session_attributes["save_phrase_for_repeat"] = speak_output
+                handler_input.attributes_manager.session_attributes["date_time_input_ready"] = True
         except:
             pass
                         
@@ -281,32 +310,44 @@ class yesIntentHandler(AbstractRequestHandler):
 
     def handle(self, handler_input):
         
-        speak_output ="test"
+        speak_output ="You can start setting a reminder by starting your prompt with: remind me to. As an example you can say: remind me to: take my medicine"
         try:
-            speak_output = "test 1 2 "
-            if handler_input.attributes_manager.session_attributes["input"] != None and handler_input.attributes_manager.session_attributes["date"] != None and handler_input.attributes_manager.session_attributes["time"] != None:
-                speak_output = "That's great. Your prompt now has been set."
-                try:
-                    if handler_input.attributes_manager.session_attributes["First_time"] == True:
-                        speak_output ="That's great. Your prompt has been set. Next time, you can start setting a prompt by saying: Alexa, tell Alfred, remind me to {}. For further assistance, you can simply say: help.".format(handler_input.attributes_manager.session_attributes["input"])
-                except:
-                    pass
-        except:
-            pass
-        
-        try:
-            if handler_input.attributes_manager.session_attributes["input"] != None and handler_input.attributes_manager.session_attributes["weekdays"] != None and handler_input.attributes_manager.session_attributes["time"] != None:
-                speak_output = "That's great. Your prompt now has been set."
+            speak_output ="You can set a reminder by starting your prompt with: remind me to. As an example you can say: remind me to: take my medicine"
+            if handler_input.attributes_manager.session_attributes["date_time_input_ready"] == True:
+                speak_output = "That's great. Your prompt now has been set. Goodbye."
                 handler_input.attributes_manager.session_attributes["save_phrase_for_repeat"] = speak_output
                 try:
                     if handler_input.attributes_manager.session_attributes["First_time"] == True:
-                        speak_output ="That's great. Your prompt has been set. Next time, you can start setting a prompt by saying: Alexa, tell Alfred, remind me to {}. For further assistance, you can simply say: help.".format(handler_input.attributes_manager.session_attributes["input"])
-                        handler_input.attributes_manager.session_attributes["save_phrase_for_repeat"] = speak_output
+                        speak_output ="That's great. Your prompt has been set. Next time, you can start setting a prompt by saying: Alexa, tell Alfred, remind me to {}. For further assistance, you can simply say: help. Bye now!".format(handler_input.attributes_manager.session_attributes["input"])
                 except:
                     pass
         except:
             pass
-        return (handler_input.response_builder.speak(speak_output).ask(speak_output).response)
+        return (handler_input.response_builder.speak(speak_output).response)
+
+class NoIntentHandler(AbstractRequestHandler):
+    """Handler for Help Intent."""
+    def can_handle(self, handler_input):
+        # type: (HandlerInput) -> bool
+        return ask_utils.is_intent_name("AMAZON.NoIntent")(handler_input)
+
+    def handle(self, handler_input):
+        
+        speak_output ="Apologies. I don't understand what you're saying no to."
+        end_session_or_not = handler_input.response_builder.speak(speak_output).ask(speak_output).response
+        try:
+            if handler_input.attributes_manager.session_attributes["date_time_input_ready"] == True:
+                speak_output = "No worries. You can try again anytime. Bye now!"
+                end_session_or_not = handler_input.response_builder.speak(speak_output).response
+                try:
+                    if handler_input.attributes_manager.session_attributes["First_time"] == True:
+                        speak_output = "No worries. You can re-initialise the skill by saying: Alexa, tell Alfred remind me to: followed by your prompt. See you soon!"
+                        end_session_or_not = handler_input.response_builder.speak(speak_output).response
+                except:
+                    pass
+        except:
+            pass
+        return end_session_or_not
 
 
 class HelpIntentHandler(AbstractRequestHandler):
@@ -318,7 +359,7 @@ class HelpIntentHandler(AbstractRequestHandler):
 
     def handle(self, handler_input):
         # type: (HandlerInput) -> Response
-        speak_output="test"
+        speak_output="You first set reminders by saying: remind me to. For example: remind me to take my medication."
         try:
             if handler_input.attributes_manager.session_attributes["user_confirmed_date_time"] ==False and handler_input.attributes_manager.session_attributes["user_confirmed_input"] ==False and handler_input.attributes_manager.session_attributes["user_confirmed_weekday_time"]==False:
                 speak_output = "You can start setting a reminder by saying: remind me to take medicine. Or: set a prompt to: take my medicine. I will then ask you for the date and time."
@@ -335,6 +376,29 @@ class HelpIntentHandler(AbstractRequestHandler):
                     pass
         except:
             pass
+        
+        try:
+            if handler_input.attributes_manager.session_attributes["input"] != None and handler_input.attributes_manager.session_attributes["user_confirmed_date_time"]==False and handler_input.attributes_manager.session_attributes["user_confirmed_weekday_time"] ==False:
+                speak_output = "You've just set a reminder. You can now set a time and date, by saying for example: seven a.m. tomorrow."
+        except:
+            pass
+        
+        if handler_input.attributes_manager.session_attributes["user_confirmed_input"] == True:
+            try:
+                if handler_input.attributes_manager.session_attributes["date_only_provided"] != None and handler_input.attributes_manager.session_attributes["user_confirmed_date_time"] == False:
+                    speak_output = "You're almost there. you just need the time. For example you can say: eight a.m"
+            except:
+                pass
+            try:
+                if handler_input.attributes_manager.session_attributes["weekday_only_provided"] != None and handler_input.attributes_manager.session_attributes["user_confirmed_date_time"] == False:
+                    speak_output = "You're almost there. you just need the time. For example you can say: eight a.m"
+            except:
+                pass
+            try:
+                if handler_input.attributes_manager.session_attributes["time_only_provided"] != None and handler_input.attributes_manager.session_attributes["user_confirmed_date_time"] == False:
+                    speak_output = "You're almost there. you just need the date. For example you can say: next wednesday"
+            except:
+                pass
             
         return (handler_input.response_builder.speak(speak_output).ask(speak_output).response)
 
@@ -346,7 +410,6 @@ class repeatsentenceIntentHandler(AbstractRequestHandler):
 
     def handle(self, handler_input):
         speak_output = "repeat intent activated"
-        
         try:
             speak_output = handler_input.attributes_manager.session_attributes["save_phrase_for_repeat"]
         except:
@@ -384,9 +447,9 @@ class FallbackIntentHandler(AbstractRequestHandler):
     def handle(self, handler_input):
         # type: (HandlerInput) -> Response
         logger.info("In FallbackIntentHandler")
-        speech = "Hmm, I'm not sure. You can say Hello or Help. What would you like to do?"
+        speech = "No intent isn't here yet. Sorry! also just saying the input returns an error. We'll fix that"
         reprompt = "I didn't catch that. What can I help you with?"
-        return (handler_input.response_builder.speak(speech).ask(reprompt).response)
+        return (handler_input.response_builder.speak(speech).ask(speech).response)
 
 class SessionEndedRequestHandler(AbstractRequestHandler):
     """Handler for Session End."""
@@ -446,6 +509,7 @@ sb = SkillBuilder()
 sb.add_request_handler(LaunchRequestHandler())
 sb.add_request_handler(setreminderdescriptionIntentHandler())
 sb.add_request_handler(yesIntentHandler())
+sb.add_request_handler(NoIntentHandler())
 sb.add_request_handler(datetimeIntentHandler())
 sb.add_request_handler(repeatsentenceIntentHandler())
 sb.add_request_handler(HelpIntentHandler())
