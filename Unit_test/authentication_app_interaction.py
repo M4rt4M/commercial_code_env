@@ -44,6 +44,34 @@ def grab_user_info(email, token_id): # we create a function that takes an email 
         print('Error obtaining value token')
     return user_information,post_reponse
 
+############################################################################################################################################
+############################################################################################################################################
+
+def send_data_one_off(name_desc,tzid,dates,user_id,token):
+    example = {
+  "title": name_desc,
+  "description": name_desc,
+  "timeRuleSet": {
+    "tzid": tzid,
+    "ruleStrings": [],
+    "dates": [dates],
+    "excludedDates": [],
+    "exclusionRuleStrings": [],
+    "until": ""
+  },
+  "geofenceRuleSet": {},
+  "type": "TimeBased",
+  "repetitionType": "OneOff",
+  "userId": user_id,
+  "creator": user_id}
+    token_ = token
+    headers = {"accept": "application/json",
+           "Content-Type": "application/json",
+           "Authorization":  "Bearer " + token }
+    
+    url_ = os.getenv('some_url')
+    r = requests.post(url, headers=headers,json=example)
+
 
 
 
