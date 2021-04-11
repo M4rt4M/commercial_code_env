@@ -3,7 +3,6 @@
 # Please visit https://alexa.design/cookbook for additional examples on implementing slots, dialog management,
 # session persistence, api calls, and more.
 # This sample is built using the handler classes approach in skill builder.
-#python version 3.7.9
 import logging
 import ask_sdk_core.utils as ask_utils
 
@@ -14,7 +13,7 @@ from ask_sdk_core.dispatch_components import AbstractExceptionHandler
 from ask_sdk_core.handler_input import HandlerInput
 from ask_sdk_core.utils import is_intent_name, get_dialog_state, get_slot_value
 import ask_sdk_core.utils as ask_utils
-
+import os
 import requests
 import json
 import backend
@@ -376,15 +375,11 @@ class yesIntentHandler(AbstractRequestHandler):
 
     def handle(self, handler_input):
         #for the sake of security, these will be replaced by environment variables
-        #add required environemnt variables here
-        
-        ###################################################################################
-        ###################################################################################
-        ###################################################################################
-        ###################################################################################
-        ###################################################################################
-        ###################################################################################
-        ###################################################################################
+        handler_input.attributes_manager.session_attributes["secret"] = os.getenv('secret')
+        handler_input.attributes_manager.session_attributes["auth_url"] = os.getenv('auth_url')
+        handler_input.attributes_manager.session_attributes["client_id"] = os.getenv('client_id')
+        handler_input.attributes_manager.session_attributes["url_heroku"] = os.getenv('url_heroku')
+        handler_input.attributes_manager.session_attributes["url_post"] = os.getenv('url_post')
         accesstoken = str(handler_input.request_envelope.context.system.api_access_token) # grab id token of current user 
         email_grab_alexa = backend.grab_email_from_alexa(accesstoken)#grabbed the email of the current user.
         device_id = str(handler_input.request_envelope.context.system.device.device_id) # grab timezone of current user
@@ -405,15 +400,11 @@ class yesIntentHandler(AbstractRequestHandler):
                 #####################################################################################################
                 #####################################################################################################
                 try:
-                    #add required environemnt variables here
-                    
-                    ###################################################################################
-                    ###################################################################################
-                    ###################################################################################
-                    ###################################################################################
-                    ###################################################################################
-                    ###################################################################################
-                    ###################################################################################
+                    handler_input.attributes_manager.session_attributes["secret"] = os.getenv('secret')
+                    handler_input.attributes_manager.session_attributes["auth_url"] = os.getenv('auth_url')
+                    handler_input.attributes_manager.session_attributes["client_id"] = os.getenv('client_id')
+                    handler_input.attributes_manager.session_attributes["url_heroku"] = os.getenv('url_heroku')
+                    handler_input.attributes_manager.session_attributes["url_post"] = os.getenv('url_post')
                     accesstoken = str(handler_input.request_envelope.context.system.api_access_token) # grab id token of current user 
                     email_grab_alexa = backend.grab_email_from_alexa(accesstoken)#grabbed the email of the current user.
                     device_id = str(handler_input.request_envelope.context.system.device.device_id) # grab timezone of current user
@@ -476,16 +467,11 @@ class whatpromptsIntentHandler(AbstractRequestHandler):
     def handle(self, handler_input):
         speak_output = "test 1 2"
         
-        #add required environemnt variables here
-        
-        ###################################################################################
-        ###################################################################################
-        ###################################################################################
-        ###################################################################################
-        ###################################################################################
-        ###################################################################################
-        ###################################################################################
-        
+        handler_input.attributes_manager.session_attributes["secret"] = os.getenv('secret')
+        handler_input.attributes_manager.session_attributes["auth_url"] = os.getenv('auth_url')
+        handler_input.attributes_manager.session_attributes["client_id"] = os.getenv('client_id')
+        handler_input.attributes_manager.session_attributes["url_heroku"] = os.getenv('url_heroku')
+        handler_input.attributes_manager.session_attributes["url_post"] = os.getenv('url_post')
         accesstoken = str(handler_input.request_envelope.context.system.api_access_token) # grab id token of current user 
         email_grab_alexa = backend.grab_email_from_alexa(accesstoken)#grabbed the email of the current user.
         device_id = str(handler_input.request_envelope.context.system.device.device_id) # grab timezone of current user
@@ -495,11 +481,24 @@ class whatpromptsIntentHandler(AbstractRequestHandler):
         grab_alfred_id = backend.grab_user_account_id(email_grab_alexa.lower(),token,handler_input.attributes_manager.session_attributes["url_heroku"])[0]["sub"] #Grab ID of current user  N.B email needs to be all lower case. 
         
         prompt_details = backend.get_prompts_for_tomrorow(handler_input.attributes_manager.session_attributes["url_heroku"],token,grab_alfred_id)
-        prompts_length = len(prompt_details.json()["prompts"])
-        prompt_title = prompt_details.json()["prompts"][prompts_length - 1]["title"]
-        prompt_time = prompt_details.json()["prompts"][prompts_length - 1]["timeRuleSet"]["dates"][0][11:16]
+        #prompts_length = len(prompt_details.json()["prompts"])
+        #prompt_title = prompt_details.json()["prompts"][prompts_length - 1]["title"]
+        #prompt_time = prompt_details.json()["prompts"][prompts_length - 1]["timeRuleSet"]["dates"][0][11:16]
         
-        speak_output = "You have a prompt to: {}, tomorrow at: {}".format(prompt_title,backend.am_pm_speech(prompt_time))
+        #speak_output = "You have a prompt to: {}, tomorrow at: {}".format(prompt_title,backend.am_pm_speech(prompt_time))
+        
+        ####trying new things here
+        speak_output = ""
+        for j in range(len(prompt_details[0])):
+            if j ==0:
+                speak_output = speak_output + "You have a prompt to: {}, tomorrow at: {} ".format(prompt_details[0][0],backend.am_pm_speech(prompt_details[1][0]))
+            if j > 0 and j != (len(prompt_details[0])-1):
+                speak_output = speak_output + ",{} at {}".format(prompt_details[0][j],backend.am_pm_speech(prompt_details[1][j]))
+            if j == (len(prompt_details[0]) -1):
+                speak_output = speak_output + ",and another to: {} at: {}".format(prompt_details[0][j],backend.am_pm_speech(prompt_details[1][j]))
+                
+                
+        
         
         
         

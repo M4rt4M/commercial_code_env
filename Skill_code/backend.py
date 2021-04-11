@@ -110,21 +110,39 @@ def find_date_weekday(input_):
 
 def am_pm_speech(input_):
     first_two_strings = input_[0:2]
+    minutes = input_[3:5]
     convert_to_int = int(first_two_strings)
     if convert_to_int <12:
-        first_two_strings = str(convert_to_int) + " a.m. "
+        first_two_strings = str(convert_to_int) + " " +  str(minutes) + " a.m. "
     if convert_to_int >12:
-        first_two_strings = str(convert_to_int - 12) + " p.m. "
+        first_two_strings = str(convert_to_int - 12) + " " + str(minutes) + " p.m. "
     if convert_to_int ==12:
-        first_two_strings = "12:00 p.m. "
+        first_two_strings = str(convert_to_int) + " " +  str(minutes) + " a.m. "
     if convert_to_int ==0:
         first_two_strings = "midnight "
     return first_two_strings
 
 def get_prompts_for_tomrorow(url,token,acc_id):
+    trigger_id = [];
+    activity = [];
+    time = [];
     tomorrow  = str(datetime.date.today() +  datetime.timedelta(days=1))
     url_ = url + "/prompt/in-time-range?start=" + tomorrow + "T00%3A00%3A10.000Z&end=" + tomorrow + "T23%3A59%3A00.000Z"
     headers = {"accept": "application/json", "X-Alfred-User": acc_id,"Authorization":  "Bearer " + token }
     r = requests.get(url_, headers=headers)
-    return r
+    
+    for i in range(len(r.json()["triggerTimes"])):
+        if (r.json()["triggerTimes"][i]["_id"]) not in trigger_id:
+            trigger_id.append(r.json()["triggerTimes"][i]["_id"])
+    
+    for i in range(len(r.json()["prompts"])):
+        for j in range(len(trigger_id)):
+            if trigger_id[j] ==r.json()["prompts"][i]["_id"]:
+                activity.append(r.json()["prompts"][i]["title"])
+                time.append(r.json()["prompts"][i]["timeRuleSet"]["dates"][0][11:16])
+            
+        
+    
+    
+    return activity,time
 
