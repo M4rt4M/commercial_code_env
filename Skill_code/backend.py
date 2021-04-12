@@ -2,6 +2,8 @@
 import requests
 import json
 import datetime
+from datetime import timedelta
+
 
 def get_token(url,client_id,secret,auth_token_url): # define function to grab variables 
     auth0_token_request ={ 
@@ -60,14 +62,18 @@ def grab_user_account_id(email, token_id,url_): # we create a function that take
     return user_information,post_reponse
 
 
-def post_one_off_prompt(input_,date,time,sub_id,timezone,token,url):
+def post_one_off_prompt(input_,date,time,sub_id,timezone,token,url,tz):
+    if "Europe" in tz:
+        time_ = (datetime.datetime.strptime(time, '%H:%M')  - timedelta(hours=1)).time()
+    elif "Europe" not in tz:
+        time_ = (datetime.datetime.strptime(time, '%H:%M'))
     prompt = {
   "title": input_,
   "description": input_,
   "timeRuleSet": {
     "tzid": timezone,
     "ruleStrings": [],
-    "dates": [date + "T" + time +":00.000000"],
+    "dates": [date + "T" + str(time_) +".000000"],
     "excludedDates": [],
     "exclusionRuleStrings": [],
     "until": ""},
@@ -76,7 +82,6 @@ def post_one_off_prompt(input_,date,time,sub_id,timezone,token,url):
   "repetitionType": "OneOff",
   "userId": sub_id,
   "creator": sub_id
-        
     }
     headers = {"accept": "application/json","Content-Type": "application/json","Authorization":  "Bearer " + token }
     
@@ -112,6 +117,8 @@ def am_pm_speech(input_):
     first_two_strings = input_[0:2]
     minutes = input_[3:5]
     convert_to_int = int(first_two_strings)
+    if minutes == "00":
+        minutes = ""
     if convert_to_int <12:
         first_two_strings = str(convert_to_int) + " " +  str(minutes) + " a.m. "
     if convert_to_int >12:
@@ -122,7 +129,7 @@ def am_pm_speech(input_):
         first_two_strings = "midnight "
     return first_two_strings
 
-def get_prompts_for_tomrorow(url,token,acc_id):
+def get_prompts_for_tomrorow(url,token,acc_id,tz):
     trigger_id = [];
     activity = [];
     time = [];
@@ -139,7 +146,11 @@ def get_prompts_for_tomrorow(url,token,acc_id):
         for j in range(len(trigger_id)):
             if trigger_id[j] ==r.json()["prompts"][i]["_id"]:
                 activity.append(r.json()["prompts"][i]["title"])
-                time.append(r.json()["prompts"][i]["timeRuleSet"]["dates"][0][11:16])
+                if "Europe" in tz:
+                    time_ = (datetime.datetime.strptime(r.json()["prompts"][i]["timeRuleSet"]["dates"][0][11:16], '%H:%M')  + timedelta(hours=1)).time()
+                elif "Europe" not in tz:
+                    time_ = (datetime.datetime.strptime(r.json()["prompts"][i]["timeRuleSet"]["dates"][0][11:16], '%H:%M')).time()
+                time.append(str(time_))
             
         
     

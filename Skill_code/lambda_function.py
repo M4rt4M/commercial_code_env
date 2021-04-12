@@ -5,7 +5,7 @@
 # This sample is built using the handler classes approach in skill builder.
 import logging
 import ask_sdk_core.utils as ask_utils
-
+import os 
 from ask_sdk_model import Response,DialogState
 from ask_sdk_core.skill_builder import SkillBuilder
 from ask_sdk_core.dispatch_components import AbstractRequestHandler
@@ -13,7 +13,7 @@ from ask_sdk_core.dispatch_components import AbstractExceptionHandler
 from ask_sdk_core.handler_input import HandlerInput
 from ask_sdk_core.utils import is_intent_name, get_dialog_state, get_slot_value
 import ask_sdk_core.utils as ask_utils
-import os
+
 import requests
 import json
 import backend
@@ -418,7 +418,7 @@ class yesIntentHandler(AbstractRequestHandler):
                     
                     grab_alfred_id = backend.grab_user_account_id(email_grab_alexa.lower(),token,handler_input.attributes_manager.session_attributes["url_heroku"]) #Grab ID of current user  N.B - email needs to be all lower case. 
                     
-                    post_test = backend.post_one_off_prompt(handler_input.attributes_manager.session_attributes["input"],handler_input.attributes_manager.session_attributes["date"],handler_input.attributes_manager.session_attributes["time"],grab_alfred_id[0]["sub"],grab_timezone,token,handler_input.attributes_manager.session_attributes["url_post"])
+                    post_test = backend.post_one_off_prompt(handler_input.attributes_manager.session_attributes["input"],handler_input.attributes_manager.session_attributes["date"],handler_input.attributes_manager.session_attributes["time"],grab_alfred_id[0]["sub"],grab_timezone,token,handler_input.attributes_manager.session_attributes["url_post"], grab_timezone)
                     
                     speak_output = "That's great. Your prompt now has been set."
                     handler_input.attributes_manager.session_attributes["save_phrase_for_repeat"] = speak_output
@@ -470,19 +470,20 @@ class whatpromptsIntentHandler(AbstractRequestHandler):
     def handle(self, handler_input):
         speak_output = ""
         try:
-        handler_input.attributes_manager.session_attributes["secret"] = os.getenv('secret')
-        handler_input.attributes_manager.session_attributes["auth_url"] = os.getenv('auth_url')
-        handler_input.attributes_manager.session_attributes["client_id"] = os.getenv('client_id')
-        handler_input.attributes_manager.session_attributes["url_heroku"] = os.getenv('url_heroku')
-        handler_input.attributes_manager.session_attributes["url_post"] = os.getenv('url_post')
+            handler_input.attributes_manager.session_attributes["secret"] = os.getenv('secret')
+            handler_input.attributes_manager.session_attributes["auth_url"] = os.getenv('auth_url')
+            handler_input.attributes_manager.session_attributes["client_id"] = os.getenv('client_id')
+            handler_input.attributes_manager.session_attributes["url_heroku"] = os.getenv('url_heroku')
+            handler_input.attributes_manager.session_attributes["url_post"] = os.getenv('url_post')
             auth_token_grab = backend.get_token(handler_input.attributes_manager.session_attributes["url_heroku"],handler_input.attributes_manager.session_attributes["client_id"],handler_input.attributes_manager.session_attributes["secret"],handler_input.attributes_manager.session_attributes["auth_url"])
             token = auth_token_grab[0] # grabbed the token for auth0
             handler_input.attributes_manager.session_attributes["accesstoken"] = str(handler_input.request_envelope.context.system.api_access_token) # grab id token of current user 
             handler_input.attributes_manager.session_attributes["email_grab_alexa"] = backend.grab_email_from_alexa(handler_input.attributes_manager.session_attributes["accesstoken"])#grabbed the email of the current user.
-            email_grab_alexa = handler_input.attributes_manager.session_attributes["email_grab_alexa"]          
+            email_grab_alexa = handler_input.attributes_manager.session_attributes["email_grab_alexa"]
+            handler_input.attributes_manager.session_attributes["device_id"] = str(handler_input.request_envelope.context.system.device.device_id) # grab timezone of current user
+            grab_timezone = backend.grab_timezone(handler_input.attributes_manager.session_attributes["accesstoken"],handler_input.attributes_manager.session_attributes["device_id"])##grab timezone of current user
             grab_alfred_id = backend.grab_user_account_id(email_grab_alexa.lower(),token,handler_input.attributes_manager.session_attributes["url_heroku"])[0]["sub"] #Grab ID of current user  N.B email needs to be all lower case. 
-            
-            prompt_details = backend.get_prompts_for_tomrorow(handler_input.attributes_manager.session_attributes["url_heroku"],token,grab_alfred_id)
+            prompt_details = backend.get_prompts_for_tomrorow(handler_input.attributes_manager.session_attributes["url_heroku"],token,grab_alfred_id, grab_timezone)
         except:
             speak_output = "I'm sorry, but we were unable to get your reminders for tomorrow. Please try again later."
         for j in range(len(prompt_details[0])):
