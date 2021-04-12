@@ -150,6 +150,12 @@ class setreminderdescriptionIntentHandler(AbstractRequestHandler):
                     speak_output = "What would you like me to remind you about? For example, you can say: remind me to walk the dog"
             except:
                 pass
+        try:
+            handler_input.attributes_manager.session_attributes["accesstoken"] = str(handler_input.request_envelope.context.system.api_access_token) # grab id token of current user 
+            handler_input.attributes_manager.session_attributes["email_grab_alexa"] = backend.grab_email_from_alexa(handler_input.attributes_manager.session_attributes["accesstoken"])#grabbed the email of the current user.
+            handler_input.attributes_manager.session_attributes["device_id"] = str(handler_input.request_envelope.context.system.device.device_id) # grab timezone of current user
+        except:
+            speak_output = "I'm sorry, but this skill does not have permission to accept certain information. Please change this through your skill settings."
         
         return (handler_input.response_builder.speak(speak_output).ask(speak_output).response)
 
@@ -232,10 +238,15 @@ class datetimeIntentHandler(AbstractRequestHandler):
                     
         
         except:
-            handler_input.attributes_manager.session_attributes["weekdays"] = weekdays_.value
-            speak_output = "Thank you. Now, what would you like me to remind you about?"
-            handler_input.attributes_manager.session_attributes["save_phrase_for_repeat"] = speak_output
-            handler_input.attributes_manager.session_attributes["user_confirmed_weekday_time"] = True
+            if handler_input.attributes_manager.session_attributes["input"] == None:
+                handler_input.attributes_manager.session_attributes["weekdays"] = weekdays_.value
+                speak_output = "Thank you. Now, what would you like me to remind you about?"
+                handler_input.attributes_manager.session_attributes["save_phrase_for_repeat"] = speak_output
+                handler_input.attributes_manager.session_attributes["user_confirmed_weekday_time"] = True
+            #elif handler_input.attributes_manager.session_attributes["date"] == None:
+            #    speak_output = "What date would you like for your reminder?"
+            #    handler_input.attributes_manager.session_attributes["save_phrase_for_repeat"] = speak_output
+                
             try:
                 if handler_input.attributes_manager.session_attributes["First_time"] == True:
                     speak_output = "Thank you. Now that you have set the date and time, please tell me what to remind you about. For example you can say: remind me to take my medication."
@@ -361,6 +372,13 @@ class datetimeIntentHandler(AbstractRequestHandler):
                 handler_input.attributes_manager.session_attributes["date"] = backend.find_date_weekday(handler_input.attributes_manager.session_attributes["weekdays"])#
         except:
             pass
+        
+        try:
+            handler_input.attributes_manager.session_attributes["accesstoken"] = str(handler_input.request_envelope.context.system.api_access_token) # grab id token of current user 
+            handler_input.attributes_manager.session_attributes["email_grab_alexa"] = backend.grab_email_from_alexa(handler_input.attributes_manager.session_attributes["accesstoken"])#grabbed the email of the current user.
+            handler_input.attributes_manager.session_attributes["device_id"] = str(handler_input.request_envelope.context.system.device.device_id) # grab timezone of current user
+        except:
+            speak_output = "I'm sorry, but this skill does not have permission to accept certain information. Please change this through your skill settings."
                         
                 
         return (handler_input.response_builder.speak(speak_output).ask(speak_output).response)
@@ -374,20 +392,6 @@ class yesIntentHandler(AbstractRequestHandler):
         return ask_utils.is_intent_name("AMAZON.YesIntent")(handler_input)
 
     def handle(self, handler_input):
-        #for the sake of security, these will be replaced by environment variables
-        handler_input.attributes_manager.session_attributes["secret"] = os.getenv('secret')
-        handler_input.attributes_manager.session_attributes["auth_url"] = os.getenv('auth_url')
-        handler_input.attributes_manager.session_attributes["client_id"] = os.getenv('client_id')
-        handler_input.attributes_manager.session_attributes["url_heroku"] = os.getenv('url_heroku')
-        handler_input.attributes_manager.session_attributes["url_post"] = os.getenv('url_post')
-        accesstoken = str(handler_input.request_envelope.context.system.api_access_token) # grab id token of current user 
-        email_grab_alexa = backend.grab_email_from_alexa(accesstoken)#grabbed the email of the current user.
-        device_id = str(handler_input.request_envelope.context.system.device.device_id) # grab timezone of current user
-        test_auth_token_grab = backend.get_token(handler_input.attributes_manager.session_attributes["url_heroku"],handler_input.attributes_manager.session_attributes["client_id"],handler_input.attributes_manager.session_attributes["secret"],handler_input.attributes_manager.session_attributes["auth_url"])
-        token = test_auth_token_grab[0] # grabbed the token for auth0 
-        grab_timezone = backend.grab_timezone(accesstoken,device_id)##grab timezone of current user
-        
-        #speak_output ="{}".format(email_grab_alexa) for debugging read out email
         speak_output = "What reminder would you like?"
         listen_or_end = handler_input.response_builder.speak(speak_output).ask(speak_output).response
         try:
@@ -408,13 +412,12 @@ class yesIntentHandler(AbstractRequestHandler):
                     accesstoken = str(handler_input.request_envelope.context.system.api_access_token) # grab id token of current user 
                     email_grab_alexa = backend.grab_email_from_alexa(accesstoken)#grabbed the email of the current user.
                     device_id = str(handler_input.request_envelope.context.system.device.device_id) # grab timezone of current user
-                    test_auth_token_grab = backend.get_token(handler_input.attributes_manager.session_attributes["url_heroku"],handler_input.attributes_manager.session_attributes["client_id"],handler_input.attributes_manager.session_attributes["secret"],handler_input.attributes_manager.session_attributes["auth_url"])
-                    token = test_auth_token_grab[0] # grabbed the token for auth0 
-                    grab_timezone = backend.grab_timezone(accesstoken,device_id)##grab timezone of current user
+                    auth_token_grab = backend.get_token(handler_input.attributes_manager.session_attributes["url_heroku"],handler_input.attributes_manager.session_attributes["client_id"],handler_input.attributes_manager.session_attributes["secret"],handler_input.attributes_manager.session_attributes["auth_url"])
+                    token = auth_token_grab[0] # grabbed the token for auth0 
+                    grab_timezone = backend.grab_timezone(handler_input.attributes_manager.session_attributes["accesstoken"],handler_input.attributes_manager.session_attributes["device_id"])##grab timezone of current user
                     
-                    grab_alfred_id = backend.grab_user_account_id(email_grab_alexa.lower(),token,handler_input.attributes_manager.session_attributes["url_heroku"]) #Grab ID of current user  N.Bemail needs to be all lower case. 
+                    grab_alfred_id = backend.grab_user_account_id(email_grab_alexa.lower(),token,handler_input.attributes_manager.session_attributes["url_heroku"]) #Grab ID of current user  N.B - email needs to be all lower case. 
                     
-                    #handler_input.attributes_manager.session_attributes["time"][1] = str(int(handler_input.attributes_manager.session_attributes["time"])-1)
                     post_test = backend.post_one_off_prompt(handler_input.attributes_manager.session_attributes["input"],handler_input.attributes_manager.session_attributes["date"],handler_input.attributes_manager.session_attributes["time"],grab_alfred_id[0]["sub"],grab_timezone,token,handler_input.attributes_manager.session_attributes["url_post"])
                     
                     speak_output = "That's great. Your prompt now has been set."
@@ -427,7 +430,7 @@ class yesIntentHandler(AbstractRequestHandler):
                     except:
                         pass
                 except:
-                    speak_output = "sorry everyone, authentication is not working. the skill has ended"
+                    speak_output = "Apologies, we had trouble connecting this skill to Alfred"
                     listen_or_end = handler_input.response_builder.speak(speak_output).response
         except:
             pass
@@ -465,43 +468,32 @@ class whatpromptsIntentHandler(AbstractRequestHandler):
         return ask_utils.is_intent_name("whatpromptstomorrow")(handler_input)
 
     def handle(self, handler_input):
-        speak_output = "test 1 2"
-        
+        speak_output = ""
+        try:
         handler_input.attributes_manager.session_attributes["secret"] = os.getenv('secret')
         handler_input.attributes_manager.session_attributes["auth_url"] = os.getenv('auth_url')
         handler_input.attributes_manager.session_attributes["client_id"] = os.getenv('client_id')
         handler_input.attributes_manager.session_attributes["url_heroku"] = os.getenv('url_heroku')
         handler_input.attributes_manager.session_attributes["url_post"] = os.getenv('url_post')
-        accesstoken = str(handler_input.request_envelope.context.system.api_access_token) # grab id token of current user 
-        email_grab_alexa = backend.grab_email_from_alexa(accesstoken)#grabbed the email of the current user.
-        device_id = str(handler_input.request_envelope.context.system.device.device_id) # grab timezone of current user
-        test_auth_token_grab = backend.get_token(handler_input.attributes_manager.session_attributes["url_heroku"],handler_input.attributes_manager.session_attributes["client_id"],handler_input.attributes_manager.session_attributes["secret"],handler_input.attributes_manager.session_attributes["auth_url"])
-        token = test_auth_token_grab[0] # grabbed the token for auth0 
-                    
-        grab_alfred_id = backend.grab_user_account_id(email_grab_alexa.lower(),token,handler_input.attributes_manager.session_attributes["url_heroku"])[0]["sub"] #Grab ID of current user  N.B email needs to be all lower case. 
-        
-        prompt_details = backend.get_prompts_for_tomrorow(handler_input.attributes_manager.session_attributes["url_heroku"],token,grab_alfred_id)
-        #prompts_length = len(prompt_details.json()["prompts"])
-        #prompt_title = prompt_details.json()["prompts"][prompts_length - 1]["title"]
-        #prompt_time = prompt_details.json()["prompts"][prompts_length - 1]["timeRuleSet"]["dates"][0][11:16]
-        
-        #speak_output = "You have a prompt to: {}, tomorrow at: {}".format(prompt_title,backend.am_pm_speech(prompt_time))
-        
-        ####trying new things here
-        speak_output = ""
+            auth_token_grab = backend.get_token(handler_input.attributes_manager.session_attributes["url_heroku"],handler_input.attributes_manager.session_attributes["client_id"],handler_input.attributes_manager.session_attributes["secret"],handler_input.attributes_manager.session_attributes["auth_url"])
+            token = auth_token_grab[0] # grabbed the token for auth0
+            handler_input.attributes_manager.session_attributes["accesstoken"] = str(handler_input.request_envelope.context.system.api_access_token) # grab id token of current user 
+            handler_input.attributes_manager.session_attributes["email_grab_alexa"] = backend.grab_email_from_alexa(handler_input.attributes_manager.session_attributes["accesstoken"])#grabbed the email of the current user.
+            email_grab_alexa = handler_input.attributes_manager.session_attributes["email_grab_alexa"]          
+            grab_alfred_id = backend.grab_user_account_id(email_grab_alexa.lower(),token,handler_input.attributes_manager.session_attributes["url_heroku"])[0]["sub"] #Grab ID of current user  N.B email needs to be all lower case. 
+            
+            prompt_details = backend.get_prompts_for_tomrorow(handler_input.attributes_manager.session_attributes["url_heroku"],token,grab_alfred_id)
+        except:
+            speak_output = "I'm sorry, but we were unable to get your reminders for tomorrow. Please try again later."
         for j in range(len(prompt_details[0])):
             if j ==0:
                 speak_output = speak_output + "You have a prompt to: {}, tomorrow at: {} ".format(prompt_details[0][0],backend.am_pm_speech(prompt_details[1][0]))
             if j > 0 and j != (len(prompt_details[0])-1):
                 speak_output = speak_output + ",{} at {}".format(prompt_details[0][j],backend.am_pm_speech(prompt_details[1][j]))
-            if j == (len(prompt_details[0]) -1):
+            if j == (len(prompt_details[0]) -1) and (len(prompt_details[0]) != 1):
                 speak_output = speak_output + ",and another to: {} at: {}".format(prompt_details[0][j],backend.am_pm_speech(prompt_details[1][j]))
                 
                 
-        
-        
-        
-        
         return handler_input.response_builder.speak(speak_output).response
 
 
