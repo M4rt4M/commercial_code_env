@@ -2,17 +2,15 @@
 
 ## How to create a Custom Amazon Skill
 Requirements: Amazon Developer Account
+
+NB You have been granted administrator role for the existing beta skill.
+
 1. Log in to your Amazon Developer account. 
 2. Open Amazon Alexa Developer console (https://developer.amazon.com/alexa/console/ask).
 3. Click 'Create Skill' (blue button).
 4. Enter skill name (this cannot be changed later) and pick default language.
 5. Pick Custom model and Alex-hosted (Python) backend.
-6. Import skill from public git repo?
-
-OR
-5. Pick Custom model and Provision your own backend.
-6. ???
-
+6. Import skill from public git repo.
 
 ## How to use custom lambda with your Skill
 Requirements: Amazon Developer Account, Custom Amazon Skill with backend in Python
@@ -42,15 +40,34 @@ Here is an example of a skill output using ssml.
 ```python
         speak_output = '<speak> \
                         <voice name="Matthew"> \
-						            <amazon:domain name="conversational"> \
+			<amazon:domain name="conversational"> \
                         Hello! My name is Alfred. \
-                        </amazon:domain> \
-						            </voice> \
+                        </amazon:domain>
+			</voice> \
                         </speak>'              
 ```
 Be careful to use different quotes inside the tags than what you're using for the whole output.
 
-## Other resources for CI/CD 
-1. From https://github.com/alexa/alexa-skills-kit-sdk-for-python
+
+## Follow up on your questions from the presentation
+Making the skill more conversational
+* Amazon Lex will help you with the _content_ of the output 
+	https://aws.amazon.com/lex/
+* SSML Conversational style and Alexa Conversations will help you with _how_ the content is said, i.e. making it sound more human-like
+  	https://developer.amazon.com/en-US/docs/alexa/conversations/about-alexa-conversations.html
+
+Including an intervention (memory training) as a part of your skill - systematic review:
+* M. Dugas, G. Gao and R. Agarwal, "Unpacking mHealth interventions: A systematic review of behavior change techniques used in randomized controlled trials assessing mHealth effectiveness", DIGITAL HEALTH, vol. 6, pp. 1-16, 2020. 
+
+## Other resources 
+ASK CLI
+* https://developer.amazon.com/en-US/docs/alexa/smapi/quick-start-alexa-skills-kit-command-line-interface.html
+
+CI/CD rom https://github.com/alexa/alexa-skills-kit-sdk-for-python
 * Unit tests https://github.com/alexa/alexa-skills-kit-sdk-for-python/tree/master/ask-sdk-core/tests/unit
 * Local debugging https://github.com/alexa/alexa-skills-kit-sdk-for-python/tree/master/ask-sdk-local-debug
+
+Skill certification
+* https://developer.amazon.com/en-US/docs/alexa/custom-skills/certification-requirements-for-custom-skills.html
+
+
